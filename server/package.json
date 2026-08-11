@@ -1,0 +1,19 @@
+{
+  "name": "fg-backups-server",
+  "version": "1.0.0",
+  "description": "Servidor que corre en el VPS: hace backups diarios (rsync via SSH) y expone una API para la app Flutter",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-cron": "^3.0.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
