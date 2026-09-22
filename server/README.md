@@ -1,18 +1,17 @@
 # fg-backups-server
 
-API que corre en tu VPS. Hace un backup diario (jala una carpeta de otra máquina por SSH/rsync) y expone endpoints para que la app Flutter prenda/apague el backup automático y vea la lista de backups.
+API que corre en tu VPS. Recibe los backups que sube la app Flutter instalada en cada servidor de cliente y los deja organizados por cliente y fecha.
 
 ## Como funciona
 
-- Todos los días a la hora definida en `CRON_SCHEDULE`, si `enabled` es `true`, se ejecuta `rsync` sobre SSH para copiar `SOURCE_PATH` (en `SOURCE_HOST`) hacia una carpeta nueva con fecha dentro de `BACKUP_DEST_DIR`.
-- El botón de encendido/apagado en la app Flutter solo activa/desactiva ese `enabled`, no dispara un backup inmediato.
-- Los backups más viejos que `RETENTION_DAYS` se borran automáticamente después de cada corrida.
+- Cada instalacion de la app Flutter (una por servidor de cliente) sube, todos los dias a la hora que se configure en la propia app, un `.zip` por cada carpeta seleccionada.
+- Los archivos quedan en `BACKUP_DEST_DIR/<clientId>/<fecha>_<carpeta>.zip`, donde `clientId` es el nombre que se puso al configurar la app en ese servidor.
+- Los backups de un cliente mas viejos que `RETENTION_DAYS` se borran automaticamente despues de cada subida de ese mismo cliente.
+- Este servidor **no** dispara backups por si solo: solo recibe. El horario y la decision de que respaldar viven en cada instalacion de la app.
 
 ## Requisitos en el VPS
 
 - Node.js >= 18
-- `rsync` instalado (`apt install rsync`)
-- Una llave SSH (sin passphrase o con agente configurado) que tenga acceso al usuario/host origen, apuntada por `SSH_KEY_PATH`. La llave pública debe estar en `~/.ssh/authorized_keys` de la máquina origen.
 
 ## Setup
 
@@ -20,7 +19,7 @@ API que corre en tu VPS. Hace un backup diario (jala una carpeta de otra máquin
 cd server
 npm install
 cp .env.example .env
-# editar .env con tus datos reales (API_KEY, SOURCE_*, BACKUP_DEST_DIR, etc)
+# editar .env con tus datos reales (API_KEY, BACKUP_DEST_DIR, etc)
 npm start
 ```
 
@@ -28,9 +27,8 @@ La API queda escuchando en `http://TU_VPS:4000` (o el `PORT` que definas). Todas
 
 ## Endpoints
 
-- `GET /api/status` -> `{ enabled, lastRun, lastStatus, lastError }`
-- `POST /api/toggle` con body `{ "enabled": true }` -> enciende/apaga el backup diario
-- `GET /api/backups` -> lista `[{ name, date, sizeBytes }, ...]`
+- `POST /api/upload` — multipart/form-data con campos `clientId` (texto) y `file` (el `.zip`). Guarda el archivo y devuelve `{ name, sizeBytes }`.
+- `GET /api/backups?clientId=<id>` — lista `[{ name, date, sizeBytes }, ...]` de ese cliente.
 
 ## Dejarlo corriendo siempre (systemd)
 
@@ -62,4 +60,4 @@ sudo systemctl enable --now fg-backups
 
 ## Exponerlo a internet
 
-Si la app Flutter se conecta desde fuera del VPS, pon un reverse proxy (nginx/caddy) con HTTPS delante del puerto 4000 y usa esa URL (`https://tu-dominio`) en la configuración de la app. No expongas el puerto 4000 directo sin TLS.
+Los servidores de tus clientes se van a conectar a este VPS desde internet, asi que necesitas HTTPS. Pon un reverse proxy (nginx/caddy) con TLS delante del puerto 4000 y usa esa URL (`https://tu-dominio`) en `lib/config.dart` de la app Flutter. No expongas el puerto 4000 directo sin TLS: la API key viajaria en texto plano.

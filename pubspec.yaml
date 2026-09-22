@@ -7,10 +7,17 @@ environment:
   sdk: ^3.11.5
 
 dependencies:
+  archive: ^4.3.0
+  file_picker: ^11.0.3
   flutter:
     sdk: flutter
   http: ^1.6.0
   intl: ^0.20.3
+  launch_at_startup: ^0.5.1
+  path: ^1.9.1
+  shared_preferences: ^2.5.5
+  tray_manager: ^0.5.3
+  window_manager: ^0.5.2
 
 dev_dependencies:
   flutter_test:
@@ -19,3 +26,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/tray_icon_on.png
+    - assets/tray_icon_on.ico
+    - assets/tray_icon_off.png
+    - assets/tray_icon_off.ico

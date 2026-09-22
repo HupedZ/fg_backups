@@ -2,13 +2,11 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
-const { readState, writeState } = require('./state');
+const { upload, pruneOldBackups, CLIENT_ID_RE } = require('./upload');
 const { listBackups } = require('./backups-list');
-const { startScheduler } = require('./scheduler');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
 
 app.use((req, res, next) => {
   const key = req.header('x-api-key');
@@ -18,21 +16,21 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/api/status', (req, res) => {
-  res.json(readState());
-});
-
-app.post('/api/toggle', (req, res) => {
-  const { enabled } = req.body;
-  if (typeof enabled !== 'boolean') {
-    return res.status(400).json({ error: 'Se espera { enabled: boolean }' });
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Falta el archivo (campo "file")' });
   }
-  res.json(writeState({ enabled }));
+  pruneOldBackups(req.body.clientId);
+  res.json({ name: req.file.filename, sizeBytes: req.file.size });
 });
 
 app.get('/api/backups', (req, res) => {
+  const clientId = req.query.clientId;
+  if (!clientId || !CLIENT_ID_RE.test(clientId)) {
+    return res.status(400).json({ error: 'clientId invalido o faltante' });
+  }
   try {
-    res.json(listBackups());
+    res.json(listBackups(clientId));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -41,5 +39,4 @@ app.get('/api/backups', (req, res) => {
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`API de backups escuchando en el puerto ${PORT}`);
-  startScheduler();
 });

@@ -24,26 +24,3 @@ class BackupEntry {
     return '${size.toStringAsFixed(size >= 10 || unitIndex == 0 ? 0 : 1)} ${units[unitIndex]}';
   }
 }
-
-class BackupStatus {
-  final bool enabled;
-  final DateTime? lastRun;
-  final String? lastStatus;
-  final String? lastError;
-
-  BackupStatus({
-    required this.enabled,
-    this.lastRun,
-    this.lastStatus,
-    this.lastError,
-  });
-
-  factory BackupStatus.fromJson(Map<String, dynamic> json) {
-    return BackupStatus(
-      enabled: json['enabled'] as bool? ?? false,
-      lastRun: json['lastRun'] != null ? DateTime.tryParse(json['lastRun'] as String) : null,
-      lastStatus: json['lastStatus'] as String?,
-      lastError: json['lastError'] as String?,
-    );
-  }
-}
