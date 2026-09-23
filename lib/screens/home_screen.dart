@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../config.dart' as config;
 import '../models/backup_entry.dart';
 import '../services/api_service.dart';
 import '../services/backup_runner_service.dart';
@@ -163,7 +164,25 @@ class _HomeScreenState extends State<HomeScreen> with WindowListener, TrayListen
     });
   }
 
+  Future<bool> _askAdminPassword() async {
+    final entered = await showDialog<String>(
+      context: context,
+      builder: (_) => const _PasswordDialog(),
+    );
+    if (entered == null) return false;
+    if (entered != config.adminPassword) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Clave incorrecta')),
+        );
+      }
+      return false;
+    }
+    return true;
+  }
+
   Future<void> _addFolder() async {
+    if (!await _askAdminPassword()) return;
     final path = await FilePicker.getDirectoryPath();
     if (path == null || _folders.contains(path)) return;
     final next = [..._folders, path];
@@ -173,6 +192,7 @@ class _HomeScreenState extends State<HomeScreen> with WindowListener, TrayListen
   }
 
   Future<void> _removeFolder(String path) async {
+    if (!await _askAdminPassword()) return;
     final next = _folders.where((f) => f != path).toList();
     await _localConfig.setFolders(next);
     if (!mounted) return;
@@ -209,6 +229,11 @@ class _HomeScreenState extends State<HomeScreen> with WindowListener, TrayListen
     final today = DateTime(now.year, now.month, now.day);
     if (_lastTriggeredDate == today) return;
     _lastTriggeredDate = today;
+    await _runBackupNow();
+  }
+
+  Future<void> _runBackupManually() async {
+    if (!await _askAdminPassword()) return;
     await _runBackupNow();
   }
 
@@ -387,7 +412,7 @@ class _HomeScreenState extends State<HomeScreen> with WindowListener, TrayListen
           ],
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: _running ? null : _runBackupNow,
+            onPressed: _running ? null : _runBackupManually,
             icon: _running
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.cloud_upload_outlined),
@@ -454,6 +479,44 @@ class _HomeScreenState extends State<HomeScreen> with WindowListener, TrayListen
             ),
         ],
       ),
+    );
+  }
+}
+
+class _PasswordDialog extends StatefulWidget {
+  const _PasswordDialog();
+
+  @override
+  State<_PasswordDialog> createState() => _PasswordDialogState();
+}
+
+class _PasswordDialogState extends State<_PasswordDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Clave de acceso'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        obscureText: true,
+        decoration: const InputDecoration(labelText: 'Clave', border: OutlineInputBorder()),
+        onSubmitted: (value) => Navigator.of(context).pop(value),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: const Text('Aceptar'),
+        ),
+      ],
     );
   }
 }

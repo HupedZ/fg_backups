@@ -6,7 +6,7 @@ API que corre en tu VPS. Recibe los backups que sube la app Flutter instalada en
 
 - Cada instalacion de la app Flutter (una por servidor de cliente) sube, todos los dias a la hora que se configure en la propia app, un `.zip` por cada carpeta seleccionada.
 - Los archivos quedan en `BACKUP_DEST_DIR/<clientId>/<fecha>_<carpeta>.zip`, donde `clientId` es el nombre que se puso al configurar la app en ese servidor.
-- Los backups de un cliente mas viejos que `RETENTION_DAYS` se borran automaticamente despues de cada subida de ese mismo cliente.
+- Despues de cada subida de un cliente se borran sus backups mas viejos que `RETENTION_DAYS` (30 por defecto), **salvo el ultimo backup de cada mes de cada carpeta**, que se conserva de forma permanente. Con backups diarios es el del ultimo dia del mes; con semanales, el ultimo semanal del mes.
 - Este servidor **no** dispara backups por si solo: solo recibe. El horario y la decision de que respaldar viven en cada instalacion de la app.
 
 ## Requisitos en el VPS
